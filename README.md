@@ -1,8 +1,8 @@
-# 🛒 Ecossistema de Processamento Assíncrono
+# Ecossistema de Processamento Assíncrono
 
 Este projeto é uma simulação de um e-commerce simplificado, focando na integração de microsserviços através de comunicação assíncrona (Mensageria) e API RESTful.
 
-## 🏗️ Diagrama de Arquitetura
+## Diagrama de Arquitetura
 
 ```mermaid
 graph TD
