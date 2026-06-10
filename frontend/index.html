@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>E-commerce Assíncrono</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; margin-top: 50px; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 350px; }
+        .produto { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;}
+        input, button { width: 100%; padding: 10px; margin-top: 10px; box-sizing: border-box; border-radius: 5px; border: 1px solid #ccc;}
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; font-size: 16px;}
+        button:hover { background-color: #0056b3; }
+        .status { margin-top: 20px; padding: 15px; border-radius: 5px; font-weight: bold; text-align: center; display: none;}
+        .pendente { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;}
+        .aprovado { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 style="text-align: center;">🛒 Carrinho</h2>
+        
+        <div class="produto">
+            <h3>Tênis Vans Upland</h3>
+            <p>Valor: R$ 499,90</p>
+        </div>
+
+        <label>Token de Segurança (Simulando Login):</label>
+        <input type="text" id="token" value="senha_secreta_123">
+
+        <button onclick="finalizarCompra()">Finalizar Compra</button>
+
+        <div id="caixa-status" class="status">
+            Status: <span id="texto-status">Aguardando...</span>
+        </div>
+    </div>
+
+    <script>
+        async function finalizarCompra() {
+            const token = document.getElementById("token").value;
+            const caixaStatus = document.getElementById("caixa-status");
+            const textoStatus = document.getElementById("texto-status");
+
+            // Exibe o status inicial
+            caixaStatus.style.display = "block";
+            caixaStatus.className = "status pendente";
+            textoStatus.innerText = "Pendente (Enviando...)";
+
+            try {
+                // 1. O FRONTEND FAZ O PEDIDO PARA A API
+                const resposta = await fetch("http://localhost:8000/pedidos/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-token": token // O Token de segurança exigido
+                    },
+                    body: JSON.stringify({ produto: "Tênis Vans Upland" })
+                });
+
+                // Validação de Segurança
+                if (resposta.status === 401) {
+                    alert("Acesso Negado: Token Inválido!");
+                    caixaStatus.style.display = "none";
+                    return;
+                }
+
+                const dados = await resposta.json();
+                const pedidoId = dados.pedido_id;
+                
+                textoStatus.innerText = "Pendente (Processando Pagamento...)";
+
+                // 2. O FRONTEND FICA CONSULTANDO A API A CADA 2 SEGUNDOS
+                const intervaloConsulta = setInterval(async () => {
+                    const respostaConsulta = await fetch(`http://localhost:8000/pedidos/${pedidoId}`);
+                    const dadosConsulta = await respostaConsulta.json();
+
+                    // Se a API avisar que foi aprovado, a tela atualiza e para de perguntar
+                    if (dadosConsulta.status === "Aprovado") {
+                        caixaStatus.className = "status aprovado";
+                        textoStatus.innerText = "✅ Aprovado com sucesso!";
+                        clearInterval(intervaloConsulta);
+                    }
+                }, 2000);
+
+            } catch (erro) {
+                alert("Erro ao conectar com a API. Verifique se o servidor está ligado.");
+                console.error(erro);
+            }
+        }
+    </script>
+</body>
+</html>
